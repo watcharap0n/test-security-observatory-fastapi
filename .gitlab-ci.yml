@@ -16,7 +16,7 @@ docker_build_signature_stg:
     - docker login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}
     - COMMIT_TIME=$(date +"%Y%m%dT%H%M%S")
     - echo "Build ${stage} image:"
-    - docker build -t ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:latest validate_service
+    - docker build -t ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:latest signature_middleware
     - docker tag ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:latest ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:${COMMIT_TIME}
     - docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:latest
     - docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:${COMMIT_TIME}
