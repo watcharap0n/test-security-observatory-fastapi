@@ -11,7 +11,7 @@ docker_build_signature_stg:
   stage: build-stg
   only:
     refs:
-      - stg
+      - master
   script:
     - docker login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}
     - COMMIT_TIME=$(date +"%Y%m%dT%H%M%S")
@@ -29,6 +29,6 @@ deploy_service_stg:
   stage: deploy-stg
   only:
     refs:
-      - stg
+      - master
   script:
     - curl -u ${RANCHER_STG_USER}:${RANCHER_STG_PASS} -X POST -H 'Accept:application/json' -H 'Content-Type:application/json' ${RANCHER_STG_ENDPOINT}'/v3/project/c-q6vf9:p-bjr7x/workload/deployment:esignature:signature-middleware?action=redeploy'
