@@ -1,0 +1,6 @@
+signature_demo/server/db/data
+signature_demo/server/db/redis
+Pipfile
+Pipfile.lock
+.idea
+*__pycache__
