@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-WORKDIR signature_demo
+WORKDIR signature_middleware
 
 COPY requirements.txt .
 
@@ -15,4 +15,4 @@ COPY server .
 
 WORKDIR ../
 
-CMD ["uvicorn", "signature_demo.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8081"]
+CMD ["uvicorn", "signature_middleware.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8081"]

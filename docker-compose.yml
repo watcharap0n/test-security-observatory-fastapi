@@ -1,14 +1,14 @@
 version: "3.7"
 
 services:
-  signature_demo:
-    build: signature_demo
-    container_name: signature_demo
-    image: kaneai/siganture_demo
+  signature_middleware:
+    build: signature_middleware
+    container_name: signature_middleware
+    image: kaneai/signature_middleware:latest
     ports:
       - "8081:8081"
     env_file:
-      - signature_demo.env
+      - signature_middleware.env
     networks:
       - default
     depends_on:
@@ -25,7 +25,7 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - ./signature_demo/server/db/data:/data/db
+      - ./signature_middleware/server/db/data:/data/db
     environment:
       - MONGO_INITDB_DATABASE=admin
     networks:
@@ -58,7 +58,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./signature_demo/server/redis:/data
+      - ./signature_middleware/server/redis:/data
     networks:
       - default
 
