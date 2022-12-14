@@ -1,0 +1,34 @@
+stages:
+  - build-stg
+  - deploy-stg
+
+
+docker_build_signature_stg:
+  variables:
+    stage: "stg"
+  tags:
+    - shell
+  stage: build-stg
+  only:
+    refs:
+      - stg
+  script:
+    - docker login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}
+    - COMMIT_TIME=$(date +"%Y%m%dT%H%M%S")
+    - echo "Build ${stage} image:"
+    - docker build -t ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:latest validate_service
+    - docker tag ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:latest ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:${COMMIT_TIME}
+    - docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:latest
+    - docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:${COMMIT_TIME}
+    - echo ${CI_REGISTRY}/${CI_PROJECT_PATH}-${stage}:${COMMIT_TIME}
+
+
+deploy_service_stg:
+  tags:
+    - shell
+  stage: deploy-stg
+  only:
+    refs:
+      - stg
+  script:
+    - curl -u ${RANCHER_STG_USER}:${RANCHER_STG_PASS} -X POST -H 'Accept:application/json' -H 'Content-Type:application/json' ${RANCHER_STG_ENDPOINT}'/v3/project/c-q6vf9:p-bjr7x/workload/deployment:esignature:signature-middleware?action=redeploy'
