@@ -1,0 +1,70 @@
+version: "3.7"
+
+services:
+  signature_demo:
+    build: signature_demo
+    container_name: signature_demo
+    image: kaneai/siganture_demo
+    ports:
+      - "8081:8081"
+    env_file:
+      - signature_demo.env
+    networks:
+      - default
+    depends_on:
+      - redis
+      - mongo
+    links:
+      - redis
+      - mongo
+
+  mongo:
+    container_name: mongo_signs
+    image: mongo:5.0
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./signature_demo/server/db/data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=admin
+    networks:
+      - default
+
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "9000:8080"
+    environment:
+      DOZZLE_LEVEL: trace
+      DOZZLE_USERNAME: dpi
+      DOZZLE_PASSWORD: secret
+    healthcheck:
+      test: [ "CMD", "/dozzle", "healthcheck" ]
+      interval: 3s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis_signs
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./signature_demo/server/redis:/data
+    networks:
+      - default
+
+
+networks:
+  default:
+    external:
+      name:
+        microservice_network
