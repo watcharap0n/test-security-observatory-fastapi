@@ -39,6 +39,7 @@ class Register(BaseModel):
         description='Allow only alphabetic eng character'
     )
     role: Optional[str] = 'Member'
+    status: Optional[str] = 'Pending'
     disabled: Optional[bool] = False
     date: Optional[datetime] = None
 
