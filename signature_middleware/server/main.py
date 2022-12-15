@@ -10,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 from .authentication import authenticate
-from .routes import initialize
+from .routes import initialize, intermediate
 
 app = FastAPI(
-    version=os.environ.get('SERVER_VERSION', '1.0.0'),
+    version=os.environ.get('SERVER_VERSION', '1.0.4'),
     docs_url='/signature/docs',
     redoc_url='/signature/redoc',
     openapi_url='/signature/openapi.json',
@@ -47,8 +47,13 @@ app.include_router(
 )
 app.include_router(
     initialize.router,
-    prefix='/initialize',
+    prefix='/initial',
     tags=['Initialized']
+)
+app.include_router(
+    intermediate.router,
+    prefix='/intermediate',
+    tags=['Intermediate']
 )
 
 log = logging.getLogger("uvicorn")
