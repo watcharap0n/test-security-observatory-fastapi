@@ -10,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 from .authentication import authenticate
-from .routes import initialize, intermediate
+from .routes import initialize, intermediate, terminal
 
 app = FastAPI(
-    version=os.environ.get('SERVER_VERSION', '1.0.4'),
+    version=os.environ.get('SERVER_VERSION', '1.0.5'),
     docs_url='/signature/docs',
     redoc_url='/signature/redoc',
     openapi_url='/signature/openapi.json',
@@ -54,6 +54,11 @@ app.include_router(
     intermediate.router,
     prefix='/intermediate',
     tags=['Intermediate']
+)
+app.include_router(
+terminal.router,
+    prefix='/terminal',
+    tags=['Terminal']
 )
 
 log = logging.getLogger("uvicorn")
@@ -101,7 +106,7 @@ def customer_openapi_signature():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="SIGNATURE SERVICE",
-        version="1.0.0",
+        version="1.0.5",
         description=description,
         routes=app.routes,
     )
