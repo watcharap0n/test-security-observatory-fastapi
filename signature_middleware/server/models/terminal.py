@@ -1,7 +1,7 @@
 import pytz
 from bson import ObjectId
 from datetime import datetime
-from typing import Union, Optional, List, Dict
+from typing import Union, Optional, List
 from pydantic import BaseModel, Field, validator, EmailStr, UUID4
 from ..db import PyObjectId
 
@@ -43,6 +43,12 @@ class CertificateJDS(BaseModel):
                 'validityDays': 730
             }
         }
+
+    @validator('reqRefNo', pre=True, always=True)
+    def set_ts(cls, reqRefNo):
+        dt = datetime.now()
+        ts = datetime.timestamp(dt)
+        return ts
 
 
 class AvailablePeople(BaseModel):
