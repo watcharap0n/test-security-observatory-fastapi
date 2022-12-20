@@ -1,8 +1,9 @@
+from uuid import uuid4
 import pytz
 from bson import ObjectId
 from datetime import datetime
 from typing import Union, List, Optional
-from pydantic import BaseModel, Field, validator, EmailStr
+from pydantic import BaseModel, Field, validator, EmailStr, UUID4
 from ..db import PyObjectId
 
 
@@ -17,15 +18,24 @@ class TokenData(BaseModel):
 
 
 class User(BaseModel):
+    uid: str
     username: str
     role: str
+    channel_access_token: Union[str, None] = None
     email: Union[EmailStr, None] = None
     full_name: Union[str, None] = None
+    status: Optional[str] = None
     disabled: Union[bool, None] = None
+    date: datetime
+
+
+class UserInDB(User):
+    hashed_password: str
 
 
 class Register(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias='_id')
+    uid: UUID4 = Field(default_factory=uuid4)
     username: str = Field(
         ...,
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-z0-9]+$',
@@ -38,6 +48,7 @@ class Register(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
         description='Allow only alphabetic eng character'
     )
+    channel_access_token: Union[str, None] = str
     role: Optional[str] = 'Member'
     status: Optional[str] = 'Pending'
     disabled: Optional[bool] = False
@@ -51,7 +62,8 @@ class Register(BaseModel):
                 'username': 'kane',
                 'hashed_password': 'secret',
                 'email': 'wera.watcharapon@gmail.com',
-                'full_name': 'watcharapon weeraborirak'
+                'full_name': 'watcharapon weeraborirak',
+                'channel_access_token': ''
             }
         }
 
@@ -62,5 +74,36 @@ class Register(BaseModel):
         return dt
 
 
-class UserInDB(User):
-    hashed_password: str
+class UpdateMember(BaseModel):
+    email: Union[EmailStr, None] = None
+    full_name: Union[str, None] = Field(
+        None,
+        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
+        description='Allow only alphabetic eng character'
+    )
+    channel_access_token: Union[str, None] = None
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+        schema_extra = {
+            'example': {
+                'email': 'exkasan@gmail.com',
+                'full_name': 'watcharapon weeraborirak',
+                'channel_access_token': ''
+            }
+        }
+
+
+class UpdateAdmin(BaseModel):
+    hashed_password: Union[str, None] = None
+    email: Union[EmailStr, None] = None
+    full_name: Union[str, None] = Field(
+        None,
+        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
+        description='Allow only alphabetic eng character'
+    )
+    channel_access_token: Union[str, None] = None
+    role: Optional[str] = 'Member'
+    status: Optional[str] = 'Pending'
+    disabled: Optional[bool] = False
