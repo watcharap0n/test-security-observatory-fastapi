@@ -9,8 +9,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
+from fastapi_csrf_protect.exceptions import CsrfProtectError
+from fastapi.responses import JSONResponse
 from .authentication import authenticate
 from .routes import initialize, intermediate, terminal
+from .dependencies.router import apply
 
 app = FastAPI(
     version=os.environ.get('SERVER_VERSION', '1.0.5'),
@@ -45,20 +48,29 @@ app.include_router(
     prefix='/jwt/auth',
     tags=['JWT']
 )
+
 app.include_router(
     initialize.router,
     prefix='/initial',
     tags=['Initialized']
 )
+
 app.include_router(
     intermediate.router,
     prefix='/intermediate',
     tags=['Intermediate']
 )
+
 app.include_router(
-terminal.router,
+    terminal.router,
     prefix='/terminal',
     tags=['Terminal']
+)
+
+app.include_router(
+    apply.router,
+    prefix='/jwt/auth',
+    tags=['CSRF'],
 )
 
 log = logging.getLogger("uvicorn")
@@ -106,7 +118,7 @@ def customer_openapi_signature():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="SIGNATURE SERVICE",
-        version="1.0.5",
+        version="1.0.6",
         description=description,
         routes=app.routes,
     )
@@ -158,3 +170,11 @@ async def shutdown_event():
         """
         create_log.write(txt)
     log.info("Shutting down...")
+
+
+@app.exception_handler(CsrfProtectError)
+def csrf_protect_exception_handler(request: Request, exc: CsrfProtectError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={'detail': 'Missing Cookie csrf-token'}
+    )
