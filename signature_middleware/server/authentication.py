@@ -1,7 +1,7 @@
 import os
 from typing import Union
 from datetime import datetime, timedelta
-from pydantic import ValidationError
+from pydantic import ValidationError, UUID4
 from fastapi import APIRouter, Depends, HTTPException, Security, status
 from jose import JWTError, jwt
 from fastapi.encoders import jsonable_encoder
@@ -12,7 +12,8 @@ from fastapi.security import (
 )
 from passlib.context import CryptContext
 from .db import db
-from .models.authentication import User, UserInDB, Register, Token, TokenData
+from .models.authentication import User, UserInDB, Register, Token, TokenData, \
+    UpdateMember, UpdateAdmin
 from .dependencies.authorize.header import signature_jwt_header
 
 SECOND = 60
@@ -144,7 +145,7 @@ async def evaluate_duplicate_account(register: Register):
     return register
 
 
-@authenticate.post('/register', response_model=Register)
+@authenticate.post('user/register', response_model=Register)
 async def register_user(
         register: Register = Depends(evaluate_duplicate_account),
         x_token: None = Depends(signature_jwt_header)):
@@ -155,7 +156,19 @@ async def register_user(
     return item_model
 
 
-@authenticate.get('/users/me/', response_model=User)
+@authenticate.put('/user/edit/{uid}', response_model=Register)
+async def update_profile(profile: UpdateMember, uid: str):
+    query = {'uid': uid}
+    value = {'$set': jsonable_encoder(profile)}
+    if (await db.update_one(collection=COLLECTION,
+                            query=query,
+                            values=value)) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f'Not found {uid} or update already exits.')
+    return await db.find_one(collection=COLLECTION, query=query)
+
+
+@authenticate.get('/user/me/', response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
