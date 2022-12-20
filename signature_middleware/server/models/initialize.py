@@ -1,21 +1,23 @@
+from secrets import token_urlsafe
 import pytz
 from datetime import datetime
 from bson import ObjectId
-from ..db import PyObjectId
 from typing import Optional, Union, List
 from pydantic import BaseModel, Field, validator
+from ..db import PyObjectId
+from ..models.intermediate import Intermediate
 
 
 class Initialized(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias='_id')
-    company_name: str = Field(
+    channel_access_token: str = Field(default_factory=token_urlsafe)
+    organization: str = Field(
         ...,
-        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9]+$',
+        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9 ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
     quota: Optional[int] = 100
     remain_quota: Optional[int] = 100
-    intermediate: Union[List, None] = []
     date: Optional[datetime] = None
 
     class Config:
@@ -23,10 +25,9 @@ class Initialized(BaseModel):
         validate_assignment = True
         schema_extra = {
             'example': {
-                'company_name': 'Thaicom',
+                'organization': 'Thaicom',
                 'quota': 100,
                 'remain_quota': 100,
-                'intermediate': []
             }
         }
 
@@ -38,23 +39,21 @@ class Initialized(BaseModel):
 
 
 class UpdateInitialize(BaseModel):
-    company_name: str = Field(
+    organization: str = Field(
         ...,
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
     quota: Optional[int] = 100
     remain_quota: Optional[int] = 100
-    intermediate: Union[List, None] = []
 
     class Config:
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
         schema_extra = {
             'example': {
-                'company_name': 'personal',
+                'organization': 'personal',
                 'quota': 100,
                 'remain_quota': 99,
-                'intermediate': []
             }
         }
