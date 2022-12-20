@@ -1,8 +1,8 @@
 import pytz
 from bson import ObjectId
 from datetime import datetime
-from typing import Union, Optional, List
-from pydantic import BaseModel, Field, validator
+from typing import Union, Optional, List, Dict
+from pydantic import BaseModel, Field, validator, EmailStr, UUID4
 from ..db import PyObjectId
 
 
@@ -14,8 +14,8 @@ class CertificateJDS(BaseModel):
     )
     signerPassword: Optional[str] = 'P@ssw0rd'
     signerPurpose: Optional[str] = 'GENERAL'
-    profileName: str
-    password: str
+    profileName: Optional[str] = 'Test JDS'
+    password: Optional[str] = 'secret'
     commonName: Optional[str] = 'demo signs'
     orgUnit: Optional[str] = 'Graduate Studies'
     org: Optional[str] = 'Vidyasirimedhi Institute of Science and Technology'
@@ -45,9 +45,35 @@ class CertificateJDS(BaseModel):
         }
 
 
+class AvailablePeople(BaseModel):
+    uid: Union[str, None] = None
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Union[EmailStr, None] = 'sample@gmail.comn'
+    date: Optional[datetime] = None
+
+    class Config:
+        json_encoders = {ObjectId: str}
+        validate_assigment = True
+        schema_extra = {
+            'uid': '1234567890112233',
+            'username': 'kane',
+            'full_name': 'watcharapon weeraborirak',
+            'email': 'sample@gmail.com'
+        }
+
+    @validator('date', pre=True, always=True)
+    def set_date(cls, date):
+        tz = pytz.timezone('Asia/Bangkok')
+        dt = datetime.now(tz)
+        return dt
+
+
 class Profile(BaseModel):
-    uid: str
-    name: str
+    uid: Union[str, None] = None
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Union[EmailStr, None] = 'sample@gmail.comn'
     date: Optional[datetime] = None
 
     class Config:
@@ -56,7 +82,9 @@ class Profile(BaseModel):
         schema_extra = {
             'example': {
                 'uid': '1234567890112233',
-                'name': 'watcharapon'
+                'username': 'kane',
+                'full_name': 'watcharapon weeraborirak',
+                'email': 'sample@gmail.com'
             }
         }
 
@@ -69,13 +97,14 @@ class Profile(BaseModel):
 
 class Terminal(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias='_id')
-    name: str = Field(
+    token: str
+    subject: str = Field(
         ...,
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9_ ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
-    owner: Profile
-    available_people: Union[List, None] = []
+    owner: Union[Profile, None] = None
+    available_people: Union[List[AvailablePeople], None] = []
     detail: CertificateJDS
 
     class Config:
@@ -83,8 +112,29 @@ class Terminal(BaseModel):
         validate_assignment = True
         schema_extra = {
             'example': {
-                'name': 'Department HR',
-                'owner': 'watcharapon',
+                'token': '',
+                'subject': 'Department HR',
+                'available_people': [],
+                'detail': {}
+            }
+        }
+
+
+class UpdateTerminal(BaseModel):
+    subject: str = Field(
+        ...,
+        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9_ ]+$',
+        description='Allow only alphabetic eng character & number endswith.'
+    )
+    available_people: Union[List, None] = []
+    detail: CertificateJDS
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+        schema_extra = {
+            'example': {
+                'subject': 'Department HR',
                 'available_people': [],
                 'detail': {}
             }
