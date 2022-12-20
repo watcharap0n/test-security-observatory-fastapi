@@ -2,7 +2,7 @@ import os
 from typing import Union
 from datetime import datetime, timedelta
 from pydantic import ValidationError, UUID4
-from fastapi import APIRouter, Depends, HTTPException, Security, status
+from fastapi import APIRouter, Depends, HTTPException, Security, status, Request
 from jose import JWTError, jwt
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import (
@@ -13,7 +13,7 @@ from fastapi.security import (
 from passlib.context import CryptContext
 from .db import db
 from .models.authentication import User, UserInDB, Register, Token, TokenData, \
-    UpdateMember, UpdateAdmin
+    UpdateMember, UpdateAdmin, CsrfProtect
 from .dependencies.authorize.header import signature_jwt_header
 
 SECOND = 60
@@ -110,6 +110,9 @@ async def get_current_active_user(
     if current_user.disabled:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Inactive user')
+    if current_user.role == 'Expire':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail='Please contact admin service.')
     return current_user
 
 
@@ -147,8 +150,11 @@ async def evaluate_duplicate_account(register: Register):
 
 @authenticate.post('user/register', response_model=Register)
 async def register_user(
+        request: Request,
+        csrf_protect: CsrfProtect = Depends(),
         register: Register = Depends(evaluate_duplicate_account),
         x_token: None = Depends(signature_jwt_header)):
+    csrf_protect.validate_csrf_in_cookies(request)
     hashed = get_password_hash(register.hashed_password)
     register.hashed_password = hashed
     item_model = jsonable_encoder(register)
@@ -157,7 +163,8 @@ async def register_user(
 
 
 @authenticate.put('/user/edit/{uid}', response_model=Register)
-async def update_profile(profile: UpdateMember, uid: str):
+async def update_profile(profile: UpdateMember, uid: str,
+                         current_user: User = Depends(get_current_active_user)):
     query = {'uid': uid}
     value = {'$set': jsonable_encoder(profile)}
     if (await db.update_one(collection=COLLECTION,

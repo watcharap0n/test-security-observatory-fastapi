@@ -4,6 +4,7 @@ from bson import ObjectId
 from datetime import datetime
 from typing import Union, List, Optional
 from pydantic import BaseModel, Field, validator, EmailStr, UUID4
+from fastapi_csrf_protect import CsrfProtect
 from ..db import PyObjectId
 
 
@@ -107,3 +108,12 @@ class UpdateAdmin(BaseModel):
     role: Optional[str] = 'Member'
     status: Optional[str] = 'Pending'
     disabled: Optional[bool] = False
+
+
+class CsrfSettings(BaseModel):
+    secret_key: str = 'thaicominnovationdigitaltransformation'
+
+
+@CsrfProtect.load_config
+def get_csrf_config():
+    return CsrfSettings()
