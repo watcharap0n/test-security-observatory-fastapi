@@ -28,7 +28,7 @@ async def evaluate_duplication_intermediate(
 
 async def admin_via_fd_intermediate(
         id: str = Path(description='revoke id document record in mongodb.',
-                        regex='^(?![a-z])[a-z0-9]+$'),
+                       regex='^(?![a-z])[a-z0-9]+$'),
         current_user: User = Depends(get_signs_active_user)
 ):
     if current_user.role == 'Member':
@@ -73,3 +73,14 @@ async def evaluate_duplication_organization(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Company name is duplicate.')
     return payload
+
+
+async def permission_access_terminal_cert(
+        id: str = Path(description='ID document terminal cert'),
+        current_user: User = Depends(get_signs_active_user)
+):
+    if (await db.find_one(collection='terminals',
+                          query={'owner.uid': current_user.uid})) is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail='Not allow to access denies')
+    return id
