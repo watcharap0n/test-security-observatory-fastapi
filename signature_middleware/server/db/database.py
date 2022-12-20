@@ -39,22 +39,18 @@ class MongoDB:
         return self.database[collection].find(query, quantity)
 
     async def insert_one(self, collection: str, data: dict):
-        ids = None
         try:
             result = self.database[collection].insert_one(data)
-            ids = result.inserted_id
+            return result.inserted_id
         except Exception as e:
             print(str(e))
-        return ids
 
     async def insert_many(self, collection: str, data: list):
-        ids = None
         try:
             result = self.database[collection].insert_many(data)
-            ids = result.inserted_ids
+            return result.inserted_ids
         except Exception as e:
             print(str(e))
-        return ids
 
     async def update_many(self, collection: str, query: dict, values):
         try:
