@@ -4,15 +4,15 @@ from fastapi.encoders import jsonable_encoder
 from ..db import db
 from ..models.authentication import User
 from ..models.initialize import Initialized, UpdateInitialize
-from ..dependencies.router.evaluate import evaluate_duplication_company_name, \
+from ..dependencies.router.evaluate import evaluate_duplication_organization, \
     permission_super_admin_via_find
 
 router = APIRouter()
 
-COLLECTION = 'certificates'
+COLLECTION = 'organizations'
 
 
-@router.get('/find/company', response_model=List[Initialized])
+@router.get('/find/organization', response_model=List[Initialized])
 async def find_root(
         skip: Union[int, None] = Query(default=0,
                                        title='Skip or start documents in collection'),
@@ -28,9 +28,10 @@ async def find_root(
     return stored_model
 
 
-@router.get('/find/company/{id}', response_model=Initialized)
+@router.get('/find/organization/{id}', response_model=Initialized)
 async def find_root_one(
-        id: str = Path(title='Document ID in collection for get item.'),
+        id: str = Path(title='Document ID in collection for get item.',
+                       regex='^(?![a-z])[a-z0-9]+$'),
         current_user: User = Depends(permission_super_admin_via_find)
 ):
     stored_model = await db.find_one(collection=COLLECTION, query={'_id': id})
@@ -39,19 +40,20 @@ async def find_root_one(
     return stored_model
 
 
-@router.post('/issue/company', response_model=Initialized)
+@router.post('/issue/organization', response_model=Initialized)
 async def create_root(
-        payload: Initialized = Depends(evaluate_duplication_company_name),
+        payload: Initialized = Depends(evaluate_duplication_organization),
 ):
     item_model = jsonable_encoder(payload)
     await db.insert_one(collection=COLLECTION, data=item_model)
     return payload
 
 
-@router.put('/solve/company/{id}', response_model=UpdateInitialize)
+@router.put('/solve/organization/{id}', response_model=UpdateInitialize)
 async def update_root(
-        id: str,
-        payload: Initialized = Depends(evaluate_duplication_company_name),
+        id: str = Path(title='Document ID in collection for update item.',
+                       regex='^(?![a-z])[a-z0-9]+$'),
+        payload: Initialized = Depends(evaluate_duplication_organization),
 ):
     item_model = jsonable_encoder(payload)
     query = {'_id': id}
