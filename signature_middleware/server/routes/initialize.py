@@ -46,7 +46,7 @@ async def create_root(
 ):
     item_model = jsonable_encoder(payload)
     await db.insert_one(collection=COLLECTION, data=item_model)
-    return payload
+    return item_model
 
 
 @router.put('/solve/organization/{id}', response_model=UpdateInitialize)

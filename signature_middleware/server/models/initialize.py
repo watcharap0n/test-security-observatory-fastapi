@@ -6,6 +6,7 @@ from typing import Optional, Union, List
 from pydantic import BaseModel, Field, validator
 from ..db import PyObjectId
 from ..models.intermediate import Intermediate
+from ..models.terminal import CertificateJDS
 
 
 class Initialized(BaseModel):
@@ -16,8 +17,10 @@ class Initialized(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9 ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
-    quota: Optional[int] = 100
-    remain_quota: Optional[int] = 100
+    signs_quota: Optional[int] = 100
+    cert_quota: Optional[int] = 100
+    detail: CertificateJDS
+    expiration_date: Optional[datetime] = None
     date: Optional[datetime] = None
 
     class Config:
@@ -26,8 +29,10 @@ class Initialized(BaseModel):
         schema_extra = {
             'example': {
                 'organization': 'Thaicom',
-                'quota': 100,
-                'remain_quota': 100,
+                'signs_quota': 100,
+                'cert_quota': 100,
+                'detail': {},
+                'expiration_date': None
             }
         }
 
@@ -44,8 +49,9 @@ class UpdateInitialize(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
-    quota: Optional[int] = 100
-    remain_quota: Optional[int] = 100
+    signs_quota: Optional[int] = 100
+    cert_quota: Optional[int] = 100
+    expiration_date: Optional[datetime] = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -53,7 +59,8 @@ class UpdateInitialize(BaseModel):
         schema_extra = {
             'example': {
                 'organization': 'personal',
-                'quota': 100,
-                'remain_quota': 99,
+                'signs_quota': 100,
+                'cert_quota': 99,
+                'expiration_date': None
             }
         }
