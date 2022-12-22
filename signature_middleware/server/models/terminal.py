@@ -14,7 +14,7 @@ class CertificateJDS(BaseModel):
     )
     signerPassword: Optional[str] = 'P@ssw0rd'
     signerPurpose: Optional[str] = 'GENERAL'
-    profileName: Optional[str] = 'Test JDS'
+    profileName: Optional[str] = 'test profile'
     password: Optional[str] = 'secret'
     commonName: Optional[str] = 'demo signs'
     orgUnit: Optional[str] = 'Graduate Studies'
