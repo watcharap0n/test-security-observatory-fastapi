@@ -9,8 +9,8 @@ from ...models.authentication import User
 async def before_create_intermediate_level(payload: Intermediate,
                                            current_user: User = Depends(get_signs_active_user)):
     if current_user.role == 'Member':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='Not allow to create level.')
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not enough to create level.')
     return payload
 
 
@@ -32,8 +32,8 @@ async def admin_via_fd_intermediate(
         current_user: User = Depends(get_signs_active_user)
 ):
     if current_user.role == 'Member':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='Not allow to purge level.')
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not enough to purge level.')
     return id
 
 
@@ -41,8 +41,8 @@ async def admin_via_find_intermediate(
         current_user: User = Depends(get_signs_active_user)
 ):
     if current_user.role == 'Member':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='Not allow to access.')
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not enough to access.')
     return current_user
 
 
@@ -50,8 +50,8 @@ async def permission_super_admin_via_find(
         current_user: User = Depends(get_signs_active_user)
 ):
     if current_user.role != 'Super Admin':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='Not allow to access.')
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not enough to access.')
     return current_user
 
 
@@ -60,8 +60,8 @@ async def permission_super_admin_via_create(
         current_user: User = Depends(get_signs_active_user)
 ):
     if current_user.role != 'Super Admin':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='Not allow to purge level.')
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not enough to permission.')
     return payload
 
 
@@ -81,6 +81,6 @@ async def permission_access_terminal_cert(
 ):
     if (await db.find_one(collection='terminals',
                           query={'owner.uid': current_user.uid})) is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='Not allow to access denies')
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not enough to access denies')
     return id
