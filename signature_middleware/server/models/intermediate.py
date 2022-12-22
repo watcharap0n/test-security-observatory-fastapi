@@ -1,10 +1,10 @@
 import pytz
-from secrets import token_hex
 from bson import ObjectId
 from datetime import datetime
 from typing import Union, Optional, List
 from pydantic import BaseModel, Field, validator
 from ..db import PyObjectId
+from ..models.terminal import CertificateJDS
 
 
 class Intermediate(BaseModel):
@@ -15,6 +15,7 @@ class Intermediate(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9 ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
+    detail: CertificateJDS
     date: Optional[datetime] = None
 
     class Config:
@@ -24,6 +25,7 @@ class Intermediate(BaseModel):
             'example': {
                 'type': 'group',
                 'subject': 'Intermediate Department',
+                'detail': {}
             }
         }
 
