@@ -89,25 +89,6 @@ You will be able to:
 """
 
 
-@app.get('/')
-async def homepage():
-    return 'signature service'
-
-
-@app.get('/404', response_class=HTMLResponse)
-async def not_found_404():
-    return """
-        <html>
-            <head>
-                <title> Not found in here </title>
-            <head>
-            <body>
-                <h1> Not found page </h1>
-            </body>
-        </html>
-        """
-
-
 def customer_openapi_signature():
     """
     docs description API
@@ -118,7 +99,7 @@ def customer_openapi_signature():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="SIGNATURE SERVICE",
-        version="1.0.6",
+        version="1.0.7",
         description=description,
         routes=app.routes,
     )
@@ -141,8 +122,6 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     pass_url = str(request.url)
     sentence = '../../' or '..%2F..%2F' or '/../../'
-    if sentence in pass_url:
-        return RedirectResponse(status_code=status.HTTP_303_SEE_OTHER, url='/404')
     return response
 
 
