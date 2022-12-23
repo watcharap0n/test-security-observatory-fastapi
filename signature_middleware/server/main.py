@@ -4,13 +4,16 @@ import os
 import logging
 from datetime import datetime
 from mangum import Mangum
+from collections import OrderedDict
 from fastapi import FastAPI, status, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from fastapi_csrf_protect.exceptions import CsrfProtectError
 from fastapi.responses import JSONResponse
+from starlette.responses import Response
 from .authentication import authenticate
 from .routes import initialize, intermediate, terminal
 from .dependencies.router import apply
@@ -34,6 +37,86 @@ origins = [
     "http://localhost:8000",
     "http://localhost:8080"
 ]
+
+CSP: dict[str, str | list[str]] = {
+    "default-src": "'self'",
+    "img-src": [
+        "*",
+        # For SWAGGER UI
+        "data:",
+    ],
+    "connect-src": "'self'",
+    "script-src": "'self'",
+    "style-src": ["'self'", "'unsafe-inline'"],
+    "script-src-elem": [
+        # For SWAGGER UI
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js",
+        "'sha256-1I8qOd6RIfaPInCv8Ivv4j+J0C6d7I8+th40S5U/TVc='",
+    ],
+    "style-src-elem": [
+        # For SWAGGER UI
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css",
+    ],
+}
+
+
+def parse_policy(policy: dict[str, str | list[str]] | str) -> str:
+    """Parse a given policy dict to string."""
+    if isinstance(policy, str):
+        # parse the string into a policy dict
+        policy_string = policy
+        policy = OrderedDict()
+
+        for policy_part in policy_string.split(";"):
+            policy_parts = policy_part.strip().split(" ")
+            policy[policy_parts[0]] = " ".join(policy_parts[1:])
+
+    policies = []
+    for section, content in policy.items():
+        if not isinstance(content, str):
+            content = " ".join(content)
+        policy_part = f"{section} {content}"
+
+        policies.append(policy_part)
+
+    parsed_policy = "; ".join(policies)
+
+    return parsed_policy
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses."""
+
+    def __init__(self, app: FastAPI, csp: bool = True) -> None:
+        """Init SecurityHeadersMiddleware.
+
+        :param app: FastAPI instance
+        :param no_csp: If no CSP should be used;
+            defaults to :py:obj:`False`
+        """
+        super().__init__(app)
+        self.csp = csp
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """Dispatch of the middleware.
+
+        :param request: Incoming request
+        :param call_next: Function to process the request
+        :return: Return response coming from processed request
+        """
+        headers = {
+            "Content-Security-Policy": "" if not self.csp else parse_policy(CSP),
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "Strict-Transport-Security": "max-age=31556926; includeSubDomains",
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
+            "X-XSS-Protection": "1; mode=block",
+        }
+        response = await call_next(request)
+        response.headers.update(headers)
+        return response
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -89,6 +172,25 @@ You will be able to:
 """
 
 
+@app.get('/')
+async def homepage():
+    return 'signature service'
+
+
+@app.get('/404', response_class=HTMLResponse)
+async def not_found_404():
+    return """
+        <html>
+            <head>
+                <title> Not found in here </title>
+            <head>
+            <body>
+                <h1> Not found page </h1>
+            </body>
+        </html>
+        """
+
+
 def customer_openapi_signature():
     """
     docs description API
@@ -99,7 +201,7 @@ def customer_openapi_signature():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="SIGNATURE SERVICE",
-        version="1.0.7",
+        version="1.0.8",
         description=description,
         routes=app.routes,
     )
@@ -122,6 +224,8 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     pass_url = str(request.url)
     sentence = '../../' or '..%2F..%2F' or '/../../'
+    if sentence in pass_url:
+        return RedirectResponse(status_code=status.HTTP_303_SEE_OTHER, url='/404')
     return response
 
 
