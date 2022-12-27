@@ -9,14 +9,16 @@ from ..models.terminal import CertificateJDS
 
 class Intermediate(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias='_id')
-    type: str
+    type: Optional[str] = None
     subject: str = Field(
         ...,
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9 ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
+    disabled: Union[bool, None] = True
     detail: CertificateJDS
     date: Optional[datetime] = None
+    channel_access_token: Union[str, None] = None
 
     class Config:
         json_encoders = {ObjectId: str}
@@ -25,7 +27,8 @@ class Intermediate(BaseModel):
             'example': {
                 'type': 'group',
                 'subject': 'Intermediate Department',
-                'detail': {}
+                'detail': {},
+                'channel_access_token': ''
             }
         }
 

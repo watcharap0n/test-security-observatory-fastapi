@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Optional
 from fastapi import APIRouter, status, HTTPException, Path, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -14,25 +14,44 @@ router = APIRouter()
 COLLECTION = 'intermediates'
 
 
-@router.post('/issue/level', response_model=ChannelAccess,
+@router.post('/issue/level', response_model=Union[ChannelAccess, Intermediate],
              status_code=status.HTTP_201_CREATED)
 async def create_intermediate_level(
         payload: Intermediate = Depends(evaluate_duplication_intermediate),
         current_user: User = Depends(get_signs_active_user)
 ):
+    payload.disabled = True
     item_model = jsonable_encoder(payload)
-    item_stored = ChannelAccess(**item_model)
-    item_stored.channel_access_token = current_user.channel_access_token
-    await db.insert_one(collection=COLLECTION, data=jsonable_encoder(item_stored))
-    return item_stored
+    if payload.channel_access_token is None:
+        item_stored = ChannelAccess(**item_model)
+        item_stored.channel_access_token = current_user.channel_access_token
+        item_stored.disabled = True
+        await db.insert_one(collection=COLLECTION, data=jsonable_encoder(item_stored))
+        return item_stored
+    company_item = await db.find_one(collection='organizations',
+                                     query={'channel_access_token': payload.channel_access_token})
+    item_model['detail']['signerProfileName'] = company_item['detail']['profileName']
+    item_model['detail']['signerPassword'] = company_item['detail']['password']
+    await db.insert_one(collection=COLLECTION, data=item_model)
+    return item_model
 
 
-@router.get('/find/level/{id}', response_model=Intermediate)
-async def find_intermediate(id: str = Depends(admin_via_fd_intermediate)):
-    stored_model = await db.find_one(collection=COLLECTION, query={'_id': id})
+@router.get('/find/level/{id}', response_model=Union[List[Intermediate], Intermediate])
+async def find_intermediate(
+        id: str = Depends(admin_via_fd_intermediate),
+        type: Optional[bool] = Query(False, description='Query find all or find one.')
+):
+    if type:
+        stored_model = await db.find_one(collection=COLLECTION, query={'_id': id})
+        if not stored_model:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail='You are not issuing intermediate certificates.')
+        return stored_model
+    stored_model = await db.find(collection=COLLECTION, query={'channel_access_token': id})
+    stored_model = list(stored_model)
     if not stored_model:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail='Not found item.')
+                            detail='You are not issuing intermediate certificates.')
     return stored_model
 
 
@@ -44,14 +63,12 @@ async def find_intermediates(
                                         title='Limit or end documents in collection'),
         current_user: User = Depends(admin_via_find_intermediate)
 ):
-    stored_model = await db.find(
-        collection=COLLECTION,
-        query={'channel_access_token': current_user.channel_access_token}
-    )
+    stored_model = await db.find(collection=COLLECTION, query={})
     stored_model = stored_model.skip(skip).limit(limit)
     stored_model = list(stored_model)
     if not stored_model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Not found item.')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail='You are not issuing intermediate certificates.')
     return stored_model
 
 
