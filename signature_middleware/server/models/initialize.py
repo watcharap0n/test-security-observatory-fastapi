@@ -2,10 +2,9 @@ from secrets import token_urlsafe
 import pytz
 from datetime import datetime
 from bson import ObjectId
-from typing import Optional, Union, List
+from typing import Optional, Union
 from pydantic import BaseModel, Field, validator
 from ..db import PyObjectId
-from ..models.intermediate import Intermediate
 from ..models.terminal import CertificateJDS
 
 
@@ -20,7 +19,7 @@ class Initialized(BaseModel):
     signs_quota: Optional[int] = 100
     cert_quota: Optional[int] = 100
     detail: CertificateJDS
-    expiration_date: Optional[datetime] = None
+    expiration_date: Union[datetime, str] = None
     date: Optional[datetime] = None
 
     class Config:
@@ -51,7 +50,7 @@ class UpdateInitialize(BaseModel):
     )
     signs_quota: Optional[int] = 100
     cert_quota: Optional[int] = 100
-    expiration_date: Optional[datetime] = None
+    expiration_date: Union[datetime, str] = None
 
     class Config:
         arbitrary_types_allowed = True
