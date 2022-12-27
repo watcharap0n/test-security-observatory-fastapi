@@ -19,10 +19,10 @@ from .routes import initialize, intermediate, terminal
 from .dependencies.router import apply
 
 app = FastAPI(
-    version=os.environ.get('SERVER_VERSION', '1.0.5'),
-    docs_url='/signature/docs',
-    redoc_url='/signature/redoc',
-    openapi_url='/signature/openapi.json',
+    version=os.environ.get('SERVER_VERSION', '1.0.9'),
+    docs_url='/docs',
+    redoc_url='/redoc',
+    openapi_url='/openapi.json',
     include_in_schema=os.getenv('OPENAPI_SCHEMA', True),
 )
 
@@ -172,11 +172,6 @@ You will be able to:
 """
 
 
-@app.get('/')
-async def homepage():
-    return 'signature service'
-
-
 @app.get('/404', response_class=HTMLResponse)
 async def not_found_404():
     return """
@@ -201,7 +196,7 @@ def customer_openapi_signature():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="SIGNATURE SERVICE",
-        version="1.0.8",
+        version="1.0.9",
         description=description,
         routes=app.routes,
     )
