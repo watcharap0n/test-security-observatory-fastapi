@@ -157,15 +157,6 @@ async def evaluate_access_token(token: str,
                         detail='Not enough permissions.')
 
 
-@authenticate.get('/user/find/{token}', response_model=List[User])
-async def get_user_organization(token: str = Depends(evaluate_access_token)):
-    users = await db.find(collection=COLLECTION, query={'channel_access_token': token})
-    users = list(users)
-    if not users:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Not found user.')
-    return users
-
-
 @authenticate.post('user/register', response_model=Register)
 async def register_user(
         request: Request,
@@ -178,6 +169,15 @@ async def register_user(
     item_model = jsonable_encoder(register)
     await db.insert_one(collection=COLLECTION, data=item_model)
     return item_model
+
+
+@authenticate.get('/user/find/{token}', response_model=List[User])
+async def get_user_organization(token: str = Depends(evaluate_access_token)):
+    users = await db.find(collection=COLLECTION, query={'channel_access_token': token})
+    users = list(users)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Not found user.')
+    return users
 
 
 @authenticate.put('/user/edit/{uid}/cert', response_model=Register)
