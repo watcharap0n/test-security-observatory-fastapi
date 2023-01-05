@@ -157,7 +157,7 @@ async def evaluate_access_token(token: str,
                         detail='Not enough permissions.')
 
 
-@authenticate.post('user/register', response_model=Register)
+@authenticate.post('/user/register', response_model=Register)
 async def register_user(
         request: Request,
         csrf_protect: CsrfProtect = Depends(),
