@@ -13,7 +13,7 @@ from fastapi.security import (
 from passlib.context import CryptContext
 from .db import db
 from .models.authentication import User, UserInDB, Register, Token, TokenData, \
-    UpdateMember, UpdateAdmin, CsrfProtect
+    UpdateMember, CsrfProtect, UpdateCert
 from .models.terminal import Terminal
 from .dependencies.authorize.header import signature_jwt_header
 
@@ -171,6 +171,26 @@ async def register_user(
     return item_model
 
 
+async def permission_super_admin(
+        current_user: User = Depends(get_signs_active_user)
+):
+    if current_user.role != 'Super Admin':
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not enough to access.')
+    return current_user
+
+
+@authenticate.post('/user/register/session', response_model=Register)
+async def register_user(
+        register: Register = Depends(evaluate_duplicate_account),
+        current_user: User = Depends(permission_super_admin)):
+    hashed = get_password_hash(register.hashed_password)
+    register.hashed_password = hashed
+    item_model = jsonable_encoder(register)
+    await db.insert_one(collection=COLLECTION, data=item_model)
+    return item_model
+
+
 @authenticate.get('/user/find/{token}', response_model=List[User])
 async def get_user_organization(token: str = Depends(evaluate_access_token)):
     users = await db.find(collection=COLLECTION, query={'channel_access_token': token})
@@ -181,10 +201,11 @@ async def get_user_organization(token: str = Depends(evaluate_access_token)):
 
 
 @authenticate.put('/user/edit/{uid}/cert', response_model=Register)
-async def update_profile(profile: UpdateMember, uid: str,
+async def update_profile(profile: UpdateCert, uid: str,
                          current_user: User = Depends(get_current_active_user)):
+    print(profile.dict())
     individual = await db.find_one(
-        collection='intermediate',
+        collection='intermediates',
         query={
             'channel_access_token': profile.channel_access_token,
             'type': 'personal'
@@ -196,16 +217,17 @@ async def update_profile(profile: UpdateMember, uid: str,
             detail='Your organization not create intermediate individual.'
         )
     if await db.find_one(collection='terminals', query={'token': individual['_id'],
-                                                        'owner.uid': current_user.uid}):
+                                                        'owner.uid': profile.uid}):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Terminal cert is already exits.')
     profile_user = {
-        'uid': current_user.uid,
-        'username': current_user.username,
-        'full_name': current_user.full_name,
-        'email': current_user.email
+        'uid': profile.uid,
+        'username': profile.username,
+        'full_name': profile.full_name,
+        'email': profile.email
     }
     model_terminal = Terminal()
+    model_terminal.subject = profile.username + '_individual'
     model_terminal.token = individual['_id']
     model_terminal.owner = profile_user
     model_terminal.available_people = [profile_user]

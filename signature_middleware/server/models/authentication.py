@@ -52,7 +52,7 @@ class Register(BaseModel):
     )
     channel_access_token: Union[str, None] = None
     role: Optional[str] = 'Member'
-    status: Optional[str] = 'Pending'
+    status: Union[str, None] = 'Pending'
     disabled: Optional[bool] = False
     cert: Union[bool, None] = False
     date: Optional[datetime] = None
@@ -87,6 +87,7 @@ class UpdateMember(BaseModel):
     cert: Union[bool, None] = None
     role: Optional[str] = 'Member'
     status: Optional[str] = 'Pending'
+    disabled: Optional[bool] = False
     channel_access_token: Union[str, None] = None
 
     class Config:
@@ -101,18 +102,20 @@ class UpdateMember(BaseModel):
         }
 
 
-class UpdateAdmin(BaseModel):
-    hashed_password: Union[str, None] = None
+class UpdateCert(BaseModel):
+    uid: str
+    username: str
     email: Union[EmailStr, None] = None
     full_name: Union[str, None] = Field(
         None,
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
         description='Allow only alphabetic eng character'
     )
-    channel_access_token: Union[str, None] = None
+    cert: Union[bool, None] = None
     role: Optional[str] = 'Member'
     status: Optional[str] = 'Pending'
     disabled: Optional[bool] = False
+    channel_access_token: Union[str, None] = None
 
 
 class CsrfSettings(BaseModel):

@@ -103,15 +103,15 @@ class Profile(BaseModel):
 
 class Terminal(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias='_id')
-    token: str
-    subject: str = Field(
-        ...,
+    token: Union[str, None] = None
+    subject: Union[str, None] = Field(
+        None,
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9_ ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
     owner: Union[Profile, None] = None
     available_people: Union[List[AvailablePeople], None] = []
-    detail: CertificateJDS
+    detail: Union[CertificateJDS, None] = None
 
     class Config:
         json_encoders = {ObjectId: str}
