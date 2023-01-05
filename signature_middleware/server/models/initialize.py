@@ -45,7 +45,7 @@ class Initialized(BaseModel):
 class UpdateInitialize(BaseModel):
     organization: str = Field(
         ...,
-        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9]+$',
+        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9 ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
     signs_quota: Optional[int] = 100
