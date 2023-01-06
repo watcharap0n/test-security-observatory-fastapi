@@ -203,7 +203,6 @@ async def get_user_organization(token: str = Depends(evaluate_access_token)):
 @authenticate.put('/user/edit/{uid}/cert', response_model=Register)
 async def update_profile(profile: UpdateCert, uid: str,
                          current_user: User = Depends(get_current_active_user)):
-    print(profile.dict())
     individual = await db.find_one(
         collection='intermediates',
         query={
