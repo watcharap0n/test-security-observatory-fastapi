@@ -15,7 +15,7 @@ class Intermediate(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9 ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
-    disabled: Union[bool, None] = True
+    disabled: Union[bool, None] = False
     detail: CertificateJDS
     date: Optional[datetime] = None
     channel_access_token: Union[str, None] = None
