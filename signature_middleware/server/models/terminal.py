@@ -2,7 +2,7 @@ import pytz
 from bson import ObjectId
 from datetime import datetime
 from typing import Union, Optional, List
-from pydantic import BaseModel, Field, validator, EmailStr, UUID4
+from pydantic import BaseModel, Field, validator, EmailStr
 from ..db import PyObjectId
 
 
@@ -14,15 +14,15 @@ class CertificateJDS(BaseModel):
     )
     signerPassword: Optional[str] = 'P@ssw0rd'
     signerPurpose: Optional[str] = 'GENERAL'
-    profileName: Optional[str] = 'test profile'
-    password: Optional[str] = 'secret'
-    commonName: Optional[str] = 'demo signs'
-    orgUnit: Optional[str] = 'Graduate Studies'
-    org: Optional[str] = 'Vidyasirimedhi Institute of Science and Technology'
-    locality: Optional[str] = 'Wangchan'
-    state: Optional[str] = 'Rayoug'
-    country: Optional[str] = 'TH'
-    validityDays: Optional[int] = 730
+    profileName: Optional[str] = None
+    password: Optional[str] = None
+    commonName: Optional[str] = None
+    orgUnit: Optional[str] = None
+    org: Optional[str] = None
+    locality: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    validityDays: Optional[int] = 365
     reqRefNo: Union[int, None] = None
 
     class Config:
@@ -56,6 +56,7 @@ class AvailablePeople(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     email: Union[EmailStr, None] = 'sample@gmail.comn'
+    disabled: Optional[bool] = False
     date: Optional[datetime] = None
 
     class Config:
