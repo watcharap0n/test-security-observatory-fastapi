@@ -1,8 +1,9 @@
+import pytz
 import os
 from typing import Union, List
 from datetime import datetime, timedelta
 from pydantic import ValidationError, UUID4
-from fastapi import APIRouter, Depends, HTTPException, Security, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Security, status, Request, Path
 from jose import JWTError, jwt
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import (
@@ -13,7 +14,7 @@ from fastapi.security import (
 from passlib.context import CryptContext
 from .db import db
 from .models.authentication import User, UserInDB, Register, Token, TokenData, \
-    UpdateMember, CsrfProtect, UpdateCert
+    UpdateMember, CsrfProtect, UpdateCert, TableUser
 from .models.terminal import Terminal
 from .dependencies.authorize.header import signature_jwt_header
 
@@ -191,7 +192,7 @@ async def register_user(
     return item_model
 
 
-@authenticate.get('/user/find/{token}', response_model=List[User])
+@authenticate.get('/user/find/{token}', response_model=List[TableUser])
 async def get_user_organization(token: str = Depends(evaluate_access_token)):
     users = await db.find(collection=COLLECTION, query={'channel_access_token': token})
     users = list(users)
@@ -200,12 +201,16 @@ async def get_user_organization(token: str = Depends(evaluate_access_token)):
     return users
 
 
-@authenticate.put('/user/edit/{uid}/cert', response_model=Register)
-async def update_profile(profile: UpdateCert, uid: str,
-                         current_user: User = Depends(get_current_active_user)):
+@authenticate.put('/user/edit/{id}/cert', response_model=Register)
+async def update_profile(
+        profile: UpdateCert,
+        id: str = Path(..., regex='^(?![a-z])[a-z0-9]+$'),
+        current_user: User = Depends(get_current_active_user)
+):
     individual = await db.find_one(
         collection='intermediates',
         query={
+            '_id': id,
             'channel_access_token': profile.channel_access_token,
             'type': 'personal'
         }
@@ -225,21 +230,32 @@ async def update_profile(profile: UpdateCert, uid: str,
         'full_name': profile.full_name,
         'email': profile.email
     }
+    tz = pytz.timezone('Asia/Bangkok')
+    dt = datetime.now(tz)
+    profile.expiration_date = dt + timedelta(days=profile.cert.detail.validityDays)
+    # change your under intermediate
+    detail_profile = profile.cert.detail.dict()
+    detail_profile['signerProfileName'] = individual['detail']['signerProfileName']
+    detail_profile['signerPassword'] = individual['detail']['signerPassword']
+
+    # create your terminal
     model_terminal = Terminal()
-    model_terminal.subject = profile.username + '_individual'
+    model_terminal.subject = profile.username
     model_terminal.token = individual['_id']
     model_terminal.owner = profile_user
     model_terminal.available_people = [profile_user]
+    model_terminal.detail = detail_profile
+
     item_model = jsonable_encoder(model_terminal)
     await db.insert_one(collection='terminals', data=jsonable_encoder(item_model))
 
-    query = {'uid': uid}
+    query = {'uid': profile.uid}
     value = {'$set': jsonable_encoder(profile)}
     if (await db.update_one(collection=COLLECTION,
                             query=query,
                             values=value)) == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f'Not found {uid} or update already exits.')
+                            detail=f'Not found {profile.uid} or update already exits.')
     return await db.find_one(collection=COLLECTION, query=query)
 
 

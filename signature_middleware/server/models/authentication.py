@@ -6,6 +6,7 @@ from typing import Union, List, Optional
 from pydantic import BaseModel, Field, validator, EmailStr, UUID4
 from fastapi_csrf_protect import CsrfProtect
 from ..db import PyObjectId
+from ..models.terminal import CertificateJDS
 
 
 class Token(BaseModel):
@@ -18,6 +19,12 @@ class TokenData(BaseModel):
     scopes: List[str] = []
 
 
+class CertUser(BaseModel):
+    id: Union[str, None] = None
+    detail: Union[CertificateJDS, None] = {}
+    disabled: Optional[bool] = False
+
+
 class User(BaseModel):
     uid: str
     username: str
@@ -25,9 +32,20 @@ class User(BaseModel):
     channel_access_token: Union[str, None] = None
     email: Union[EmailStr, None] = None
     full_name: Union[str, None] = None
-    status: Optional[str] = None
     disabled: Union[bool, None] = None
-    cert: Union[bool, None] = None
+    date: datetime
+
+
+class TableUser(BaseModel):
+    uid: str
+    username: str
+    role: str
+    cert: CertUser
+    channel_access_token: Union[str, None] = None
+    email: Union[EmailStr, None] = None
+    full_name: Union[str, None] = None
+    disabled: Union[bool, None] = None
+    expiration_date: Optional[datetime] = None
     date: datetime
 
 
@@ -50,11 +68,11 @@ class Register(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
         description='Allow only alphabetic eng character'
     )
+    expiration_date: Optional[datetime] = None
     channel_access_token: Union[str, None] = None
     role: Optional[str] = 'Member'
-    status: Union[str, None] = 'Pending'
     disabled: Optional[bool] = False
-    cert: Union[bool, None] = False
+    cert: CertUser
     date: Optional[datetime] = None
 
     class Config:
@@ -66,7 +84,8 @@ class Register(BaseModel):
                 'hashed_password': 'secret',
                 'email': 'wera.watcharapon@gmail.com',
                 'full_name': 'watcharapon weeraborirak',
-                'channel_access_token': ''
+                'channel_access_token': '',
+                'cert': {}
             }
         }
 
@@ -84,9 +103,8 @@ class UpdateMember(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
         description='Allow only alphabetic eng character'
     )
-    cert: Union[bool, None] = None
+    cert: CertUser
     role: Optional[str] = 'Member'
-    status: Optional[str] = 'Pending'
     disabled: Optional[bool] = False
     channel_access_token: Union[str, None] = None
 
@@ -111,9 +129,9 @@ class UpdateCert(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
         description='Allow only alphabetic eng character'
     )
-    cert: Union[bool, None] = None
+    expiration_date: Optional[datetime] = None
+    cert: CertUser
     role: Optional[str] = 'Member'
-    status: Optional[str] = 'Pending'
     disabled: Optional[bool] = False
     channel_access_token: Union[str, None] = None
 
