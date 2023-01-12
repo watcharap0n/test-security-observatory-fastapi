@@ -7,7 +7,7 @@ from ..authentication import get_signs_active_user
 from ..models.intermediate import Intermediate, ChannelAccess, UpdateIntermediate
 from ..models.authentication import User
 from ..dependencies.router.evaluate import evaluate_duplication_intermediate, \
-    admin_via_fd_intermediate, super_admin_via_find_intermediate, admin_via_find_intermediate
+    admin_via_fd_intermediate, admin_via_find_intermediate
 
 router = APIRouter()
 
@@ -64,7 +64,7 @@ async def find_intermediates(
                                        title='Skip or start documents in collection'),
         limit: Union[int, None] = Query(default=10,
                                         title='Limit or end documents in collection'),
-        current_user: User = Depends(super_admin_via_find_intermediate)
+        current_user: User = Depends(admin_via_fd_intermediate)
 ):
     stored_model = await db.find(collection=COLLECTION, query={})
     stored_model = stored_model.skip(skip).limit(limit)
