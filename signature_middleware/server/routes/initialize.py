@@ -82,8 +82,9 @@ async def organization_chart(
     new_intermediates = []
     for imd in intermediates:
         _id = imd['_id']
-        terminal = await db.find_one(collection='terminals', query={'token': _id})
-        imd['terminal'] = terminal
+        terminals = await db.find(collection='terminals', query={'token': _id})
+        result_terminal = [terminal for terminal in terminals]
+        imd['terminals'] = result_terminal
         new_intermediates.append(imd)
     org['intermediates'] = new_intermediates
     return org
