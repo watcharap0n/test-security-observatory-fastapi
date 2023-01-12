@@ -17,7 +17,6 @@ from .models.authentication import User, UserInDB, Register, Token, TokenData, \
     UpdateMember, CsrfProtect, UpdateCert, TableUser
 from .models.terminal import Terminal
 from .dependencies.authorize.header import signature_jwt_header
-from .dependencies.router.evaluate import admin_via_find_intermediate
 
 SECOND = 60
 MINUTE = os.environ.get('EXPIRES_TOKEN', '60')
@@ -182,10 +181,20 @@ async def permission_super_admin(
     return current_user
 
 
+async def permission_admin(
+        current_user: User = Depends(get_signs_active_user)
+):
+    if current_user.role != 'Admin':
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not enough to access.')
+    return current_user
+
+
 @authenticate.post('/user/register/session', response_model=Register)
 async def register_user(
         register: Register = Depends(evaluate_duplicate_account),
-        current_user: User = Depends(admin_via_find_intermediate)):
+        current_user: User = Depends(permission_admin)
+):
     hashed = get_password_hash(register.hashed_password)
     register.hashed_password = hashed
     item_model = jsonable_encoder(register)
