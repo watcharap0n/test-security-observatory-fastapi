@@ -35,7 +35,7 @@ async def admin_via_fd_intermediate(
         channel_access_token: str = Path(description='revoke id document record in mongodb.'),
         current_user: User = Depends(get_signs_active_user)
 ):
-    if current_user.role != 'Super Admin':
+    if current_user.role != 'Admin':
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='Not enough to permission.')
     return channel_access_token
