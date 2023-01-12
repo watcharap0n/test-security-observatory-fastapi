@@ -64,3 +64,26 @@ async def update_root(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f'Not found {id} or update already exits.')
     return item_model
+
+
+@router.get('/find/organization/{id}/chart')
+async def organization_chart(
+        id: str = Path(title='Document ID in collection for get item.',
+                       regex='^(?![a-z])[a-z0-9]+$'),
+        current_user: User = Depends(permission_super_admin_via_find)
+):
+    org = await db.find_one(collection=COLLECTION, query={'_id': id})
+    channel_access_token = org['channel_access_token']
+    intermediates = await db.find(
+        collection='intermediates',
+        query={'channel_access_token': channel_access_token}
+    )
+    intermediates = list(intermediates)
+    new_intermediates = []
+    for imd in intermediates:
+        _id = imd['_id']
+        terminal = await db.find_one(collection='terminals', query={'token': _id})
+        imd['terminal'] = terminal
+        new_intermediates.append(imd)
+    org['intermediates'] = new_intermediates
+    return org
