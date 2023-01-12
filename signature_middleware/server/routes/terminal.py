@@ -23,7 +23,7 @@ async def find_terminal_certs(
         current_user: User = Depends(admin_via_find_intermediate)
 ):
     id_intermediate = await db.find_one(
-        collection='intermediate',
+        collection=COLLECTION,
         query={'channel_access_token': current_user.channel_access_token}
     )
     terminals = await db.find(collection=COLLECTION, query={'token': id_intermediate})
