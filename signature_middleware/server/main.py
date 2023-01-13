@@ -253,7 +253,11 @@ async def add_process_time_header(request: Request, call_next):
 @app.on_event("startup")
 async def startup_event():
     """Start up event for FastAPI application."""
-    r = Redis(host=os.getenv('REDIS_HOST', 'localhost'), db=0)
+    r = Redis(
+        host=os.getenv('REDIS_HOST', 'localhost'),
+        port=int(os.getenv('REDIS_PORT', 6379)),
+        db=0
+    )
     log.info(r)
     await FastAPILimiter.init(r)
 

@@ -238,7 +238,8 @@ async def update_profile(
         'uid': profile.uid,
         'username': profile.username,
         'full_name': profile.full_name,
-        'email': profile.email
+        'email': profile.email,
+        'channel_access_token': profile.channel_access_token
     }
     tz = pytz.timezone('Asia/Bangkok')
     dt = datetime.now(tz)
