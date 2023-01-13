@@ -81,6 +81,7 @@ class Profile(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     email: Union[EmailStr, None] = 'sample@gmail.comn'
+    channel_access_token: Optional[str] = None
     date: Optional[datetime] = None
 
     class Config:
