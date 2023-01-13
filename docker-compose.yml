@@ -9,14 +9,14 @@ services:
       - "8081:8081"
     env_file:
       - signature_middleware.env
-    networks:
-      - default
     depends_on:
       - redis
       - mongo
     links:
       - redis
       - mongo
+    networks:
+      - default
 
   mongo:
     container_name: mongo_signs
@@ -58,7 +58,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./signature_middleware/server/redis:/data
+      - ./signature_middleware/server/redis_data:/data
     networks:
       - default
 

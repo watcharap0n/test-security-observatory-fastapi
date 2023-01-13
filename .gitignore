@@ -1,5 +1,5 @@
 signature_middleware/server/db/data
-signature_middleware/server/redis
+signature_middleware/server/redis_data
 Pipfile
 Pipfile.lock
 .idea
