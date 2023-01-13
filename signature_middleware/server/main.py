@@ -2,10 +2,11 @@ import pytz
 import time
 import os
 import logging
+from aioredis import Redis
 from datetime import datetime
 from mangum import Mangum
 from collections import OrderedDict
-from fastapi import FastAPI, status, Request
+from fastapi import FastAPI, status, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -14,6 +15,8 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from fastapi_csrf_protect.exceptions import CsrfProtectError
 from fastapi.responses import JSONResponse
 from starlette.responses import Response
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 from .authentication import authenticate
 from .routes import initialize, intermediate, terminal
 from .dependencies.router import apply
@@ -118,6 +121,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+RATE_PER_TIME = int(os.getenv('RATE_PER_TIME', 3))
+RATE_AWAIT = int(os.getenv('RATE_AWAIT', 5))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -129,31 +135,51 @@ app.add_middleware(
 app.include_router(
     authenticate,
     prefix='/jwt/auth',
-    tags=['JWT']
+    tags=['JWT'],
+    dependencies=[Depends(RateLimiter(
+        times=RATE_PER_TIME,
+        seconds=RATE_AWAIT
+    ))]
 )
 
 app.include_router(
     initialize.router,
     prefix='/initial',
-    tags=['Initialized']
+    tags=['Initialized'],
+    dependencies=[Depends(RateLimiter(
+        times=RATE_PER_TIME,
+        seconds=RATE_AWAIT
+    ))]
 )
 
 app.include_router(
     intermediate.router,
     prefix='/intermediate',
-    tags=['Intermediate']
+    tags=['Intermediate'],
+    dependencies=[Depends(RateLimiter(
+        times=RATE_PER_TIME,
+        seconds=RATE_AWAIT
+    ))]
 )
 
 app.include_router(
     terminal.router,
     prefix='/terminal',
-    tags=['Terminal']
+    tags=['Terminal'],
+    dependencies=[Depends(RateLimiter(
+        times=RATE_PER_TIME,
+        seconds=RATE_AWAIT
+    ))]
 )
 
 app.include_router(
     apply.router,
     prefix='/jwt/auth',
     tags=['CSRF'],
+    dependencies=[Depends(RateLimiter(
+        times=RATE_PER_TIME,
+        seconds=RATE_AWAIT
+    ))]
 )
 
 log = logging.getLogger("uvicorn")
@@ -227,6 +253,10 @@ async def add_process_time_header(request: Request, call_next):
 @app.on_event("startup")
 async def startup_event():
     """Start up event for FastAPI application."""
+    r = Redis(host=os.getenv('REDIS_HOST', 'localhost'), db=0)
+    log.info(r)
+    await FastAPILimiter.init(r)
+
     log.info("Starting up server signature")
     root_dir = os.path.dirname(__file__)
     static_dir = os.path.join(root_dir, 'static')
