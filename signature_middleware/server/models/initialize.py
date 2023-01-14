@@ -1,6 +1,6 @@
-from secrets import token_urlsafe
 import pytz
-from datetime import datetime
+from secrets import token_urlsafe
+from datetime import datetime, timedelta
 from bson import ObjectId
 from typing import Optional, Union
 from pydantic import BaseModel, Field, validator
@@ -20,6 +20,7 @@ class Initialized(BaseModel):
     cert_quota: Optional[int] = 100
     detail: CertificateJDS
     expiration_date: Union[datetime, str] = None
+    expiration_date_cert: Optional[datetime] = None
     date: Optional[datetime] = None
 
     class Config:
@@ -40,6 +41,12 @@ class Initialized(BaseModel):
         tz = pytz.timezone('Asia/Bangkok')
         dt = datetime.now(tz)
         return dt
+
+    @validator('expiration_date_cert', pre=True, always=True)
+    def set_expire(cls, expiration_date_cert):
+        tz = pytz.timezone('Asia/Bangkok')
+        dt = datetime.now(tz)
+        return dt + timedelta(days=365)
 
 
 class UpdateInitialize(BaseModel):
