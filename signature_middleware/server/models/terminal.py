@@ -1,6 +1,6 @@
 import pytz
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Union, Optional, List
 from pydantic import BaseModel, Field, validator, EmailStr
 from ..db import PyObjectId
@@ -14,7 +14,10 @@ class CertificateJDS(BaseModel):
     )
     signerPassword: Optional[str] = 'P@ssw0rd'
     signerPurpose: Optional[str] = 'GENERAL'
-    profileName: Optional[str] = None
+    profileName: Optional[str] = Field(
+        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-z0-9_]+$',
+        description='Allow only alphabetic eng character & number endswith.',
+    )
     password: Optional[str] = None
     commonName: Optional[str] = None
     orgUnit: Optional[str] = None
@@ -103,9 +106,16 @@ class Profile(BaseModel):
         return dt
 
 
+class ImdDetail(BaseModel):
+    id: Optional[str] = Field(None, alias='_id')
+    type: Union[str, None] = None
+    subject: Optional[str] = None
+    channel_access_token: Optional[str] = None
+
+
 class Terminal(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias='_id')
-    token: Union[str, None] = None
+    imd_detail: Union[ImdDetail, None] = None
     subject: Union[str, None] = Field(
         None,
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9_ ]+$',
@@ -114,18 +124,33 @@ class Terminal(BaseModel):
     owner: Union[Profile, None] = None
     available_people: Union[List[AvailablePeople], None] = []
     detail: Union[CertificateJDS, None] = None
+    expiration_date: Optional[datetime] = None
+    disabled: Union[bool, None] = False
+    date: Optional[datetime] = None
 
     class Config:
         json_encoders = {ObjectId: str}
         validate_assignment = True
         schema_extra = {
             'example': {
-                'token': '',
+                'imd_detail': {},
                 'subject': 'Department HR',
                 'available_people': [],
                 'detail': {}
             }
         }
+
+    @validator('expiration_date', pre=True, always=True)
+    def set_expire(cls, expiration_date):
+        tz = pytz.timezone('Asia/Bangkok')
+        dt = datetime.now(tz)
+        return dt + timedelta(days=365)
+
+    @validator('date', pre=True, always=True)
+    def set_date(cls, date):
+        tz = pytz.timezone('Asia/Bangkok')
+        dt = datetime.now(tz)
+        return dt
 
 
 class UpdateTerminal(BaseModel):
