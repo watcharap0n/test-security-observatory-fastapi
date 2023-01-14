@@ -1,6 +1,6 @@
 import pytz
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Union, Optional, List
 from pydantic import BaseModel, Field, validator
 from ..db import PyObjectId
@@ -15,10 +15,12 @@ class Intermediate(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9 ]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
+    edit_disabled: Union[bool, None] = False
     disabled: Union[bool, None] = False
     detail: CertificateJDS
     date: Optional[datetime] = None
     channel_access_token: Union[str, None] = None
+    expiration_date: Optional[datetime] = None
 
     class Config:
         json_encoders = {ObjectId: str}
@@ -37,6 +39,13 @@ class Intermediate(BaseModel):
         tz = pytz.timezone('Asia/Bangkok')
         dt = datetime.now(tz)
         return dt
+
+    @validator('expiration_date', pre=True, always=True)
+    def set_expire(cls, expiration_date):
+        tz = pytz.timezone('Asia/Bangkok')
+        dt = datetime.now(tz)
+        return dt + timedelta(days=365)
+
 
 
 class ChannelAccess(Intermediate):

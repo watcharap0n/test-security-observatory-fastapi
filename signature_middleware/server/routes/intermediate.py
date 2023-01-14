@@ -20,10 +20,12 @@ async def create_intermediate_level(
         payload: Intermediate = Depends(evaluate_duplication_intermediate),
         current_user: User = Depends(get_signs_active_user)
 ):
+    payload.edit_disabled = True
     item_model = jsonable_encoder(payload)
     if payload.channel_access_token is None:
         item_stored = ChannelAccess(**item_model)
         item_stored.channel_access_token = current_user.channel_access_token
+        item_stored.edit_disabled = True
         await db.insert_one(collection=COLLECTION, data=jsonable_encoder(item_stored))
         return item_stored
     company_item = await db.find_one(collection='organizations',
