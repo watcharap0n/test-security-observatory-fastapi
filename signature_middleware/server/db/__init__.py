@@ -18,7 +18,7 @@ client = MongoClient(
 )
 
 db = MongoDB(
-    database_name="SignatureDemo",
+    database_name="MiddlewareSigns",
     client=client
 )
 
