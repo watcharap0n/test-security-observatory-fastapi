@@ -20,7 +20,7 @@ from .dependencies.authorize.header import signature_jwt_header
 
 SECOND = 60
 MINUTE = os.environ.get('EXPIRES_TOKEN', '60')
-EXPIRES_TOKEN = SECOND * eval(MINUTE)
+EXPIRES_TOKEN = SECOND * int(MINUTE)
 SECRET_KEY = '09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7'
 ALGORITHM = 'HS256'
 COLLECTION = 'authentication'
@@ -136,7 +136,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Incorrect username or password')
-    access_token_expires = timedelta(minutes=EXPIRES_TOKEN)
+    access_token_expires = timedelta(seconds=EXPIRES_TOKEN)
     access_token = create_access_token(
         data={'sub': user.username, "scopes": form_data.scopes},
         expires_delta=access_token_expires,
@@ -184,7 +184,7 @@ async def permission_super_admin(
 async def permission_admin(
         current_user: User = Depends(get_signs_active_user)
 ):
-    if current_user.role != 'Admin':
+    if current_user.role == 'Member':
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='Not enough to access.')
     return current_user
@@ -252,7 +252,7 @@ async def update_profile(
     # create your terminal
     model_terminal = Terminal()
     model_terminal.subject = profile.username
-    model_terminal.token = individual['_id']
+    model_terminal.imd_detail = individual
     model_terminal.owner = profile_user
     model_terminal.available_people = [profile_user]
     model_terminal.detail = detail_profile
