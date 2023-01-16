@@ -1,3 +1,4 @@
+import json
 from typing import List, Union
 from fastapi import APIRouter, Query, Path, HTTPException, status, Depends, \
     BackgroundTasks
@@ -9,6 +10,7 @@ from ..models.initialize import Initialized, UpdateInitialize
 from ..dependencies.router.log import log_transaction
 from ..dependencies.router.evaluate import evaluate_duplication_organization, \
     permission_super_admin_via_find
+from ..dependencies.redis_connection import init_redis
 
 router = APIRouter()
 
@@ -22,21 +24,36 @@ async def find_root(
                                        title='Skip or start documents in collection'),
         limit: Union[int, None] = Query(default=10,
                                         title='Limit or end documents in collection'),
+        redis_conn=Depends(init_redis),
         current_user: User = Depends(permission_super_admin_via_find),
 ):
-    stored_model = await db.find(collection=COLLECTION, query={})
-    stored_model = stored_model.skip(skip).limit(limit)
-    stored_model = list(stored_model)
-    if not stored_model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Not found item.')
+    key = f'organization:{skip}:{limit}'
+    orgs = await redis_conn.get(key)
+    if not orgs:
+        stored_model = await db.find(collection=COLLECTION, query={})
+        stored_model = stored_model.skip(skip).limit(limit)
+        stored_model = list(stored_model)
+        await redis_conn.set(key, json.dumps(stored_model))
+        await redis_conn.expire(key, 300)
+        if not stored_model:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Not found item.')
+        background_task.add_task(
+            log_transaction,
+            method='/GET',
+            endpoint='/initial/find/organization',
+            from_cache=False,
+            info_user=current_user.dict()
+        )
+        return stored_model
+
     background_task.add_task(
         log_transaction,
         method='/GET',
         endpoint='/initial/find/organization',
-        from_cache=False,
+        from_cache=True,
         info_user=current_user.dict()
     )
-    return stored_model
+    return json.loads(orgs)
 
 
 @router.get('/find/organization/{id}', response_model=Initialized)
@@ -44,19 +61,33 @@ async def find_root_one(
         background_task: BackgroundTasks,
         id: str = Path(title='Document ID in collection for get item.',
                        regex='^(?![a-z])[a-z0-9]+$'),
-        current_user: User = Depends(permission_super_admin_via_find)
+        current_user: User = Depends(permission_super_admin_via_find),
+        redis_conn=Depends(init_redis),
 ):
-    stored_model = await db.find_one(collection=COLLECTION, query={'_id': id})
-    if not stored_model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Not found item.')
+    org = await redis_conn.get(id)
+    if not org:
+        stored_model = await db.find_one(collection=COLLECTION, query={'_id': id})
+        await redis_conn.set(id, json.dumps(stored_model))
+        await redis_conn.expire(id, 300)
+        if not stored_model:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Not found item.')
+        background_task.add_task(
+            log_transaction,
+            method='/GET',
+            endpoint=f'/initial/find/organization/{id}',
+            from_cache=False,
+            info_user=current_user.dict()
+        )
+        return stored_model
+
     background_task.add_task(
         log_transaction,
         method='/GET',
         endpoint=f'/initial/find/organization/{id}',
-        from_cache=False,
+        from_cache=True,
         info_user=current_user.dict()
     )
-    return stored_model
+    return json.loads(org)
 
 
 @router.post('/issue/organization', response_model=Initialized)
