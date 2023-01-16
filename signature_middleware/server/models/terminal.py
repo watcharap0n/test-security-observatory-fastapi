@@ -15,7 +15,7 @@ class CertificateJDS(BaseModel):
     signerPassword: Optional[str] = 'P@ssw0rd'
     signerPurpose: Optional[str] = 'GENERAL'
     profileName: Optional[str] = Field(
-        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-z0-9_]+$',
+        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z0-9_]+$',
         description='Allow only alphabetic eng character & number endswith.',
     )
     password: Optional[str] = None

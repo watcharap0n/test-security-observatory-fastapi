@@ -58,7 +58,7 @@ class Register(BaseModel):
     uid: UUID4 = Field(default_factory=uuid4)
     username: str = Field(
         ...,
-        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-z0-9]+$',
+        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-z0-9_]+$',
         description='Allow only alphabetic eng character & number endswith.'
     )
     hashed_password: str
