@@ -5,20 +5,20 @@ import logging
 from aioredis import Redis
 from datetime import datetime
 from mangum import Mangum
-from collections import OrderedDict
 from fastapi import FastAPI, status, Request, Depends
+from fastapi_limiter import FastAPILimiter
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from fastapi.exceptions import RequestValidationError
 from fastapi_csrf_protect.exceptions import CsrfProtectError
 from fastapi.responses import JSONResponse
-from starlette.responses import Response
-from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from .authentication import authenticate
 from .routes import initialize, intermediate, terminal
+from .dependencies.policy import SecurityHeadersMiddleware
 from .dependencies.router import apply
 
 app = FastAPI(
@@ -41,95 +41,12 @@ origins = [
     "http://localhost:8080"
 ]
 
-CSP: dict[str, str | list[str]] = {
-    "default-src": "'self'",
-    "img-src": [
-        "*",
-        # For SWAGGER UI
-        "data:",
-    ],
-    "connect-src": "'self'",
-    "script-src": "'self'",
-    "style-src": ["'self'", "'unsafe-inline'"],
-    "script-src-elem": [
-        # For SWAGGER UI
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js",
-        "'sha256-1I8qOd6RIfaPInCv8Ivv4j+J0C6d7I8+th40S5U/TVc='",
-    ],
-    "style-src-elem": [
-        # For SWAGGER UI
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css",
-    ],
-}
-
-
-def parse_policy(policy: dict[str, str | list[str]] | str) -> str:
-    """Parse a given policy dict to string."""
-    if isinstance(policy, str):
-        # parse the string into a policy dict
-        policy_string = policy
-        policy = OrderedDict()
-
-        for policy_part in policy_string.split(";"):
-            policy_parts = policy_part.strip().split(" ")
-            policy[policy_parts[0]] = " ".join(policy_parts[1:])
-
-    policies = []
-    for section, content in policy.items():
-        if not isinstance(content, str):
-            content = " ".join(content)
-        policy_part = f"{section} {content}"
-
-        policies.append(policy_part)
-
-    parsed_policy = "; ".join(policies)
-
-    return parsed_policy
-
-
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Add security headers to all responses."""
-
-    def __init__(self, app: FastAPI, csp: bool = True) -> None:
-        """Init SecurityHeadersMiddleware.
-
-        :param app: FastAPI instance
-        :param no_csp: If no CSP should be used;
-            defaults to :py:obj:`False`
-        """
-        super().__init__(app)
-        self.csp = csp
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        """Dispatch of the middleware.
-
-        :param request: Incoming request
-        :param call_next: Function to process the request
-        :return: Return response coming from processed request
-        """
-        headers = {
-            "Content-Security-Policy": "" if not self.csp else parse_policy(CSP),
-            "Cross-Origin-Opener-Policy": "same-origin",
-            "Referrer-Policy": "strict-origin-when-cross-origin",
-            "Strict-Transport-Security": "max-age=31556926; includeSubDomains",
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
-            "X-XSS-Protection": "1; mode=block",
-        }
-        response = await call_next(request)
-        response.headers.update(headers)
-        return response
-
-
 RATE_PER_TIME = int(os.getenv('RATE_PER_TIME', 3))
 RATE_AWAIT = int(os.getenv('RATE_AWAIT', 5))
 
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    SecurityHeadersMiddleware,
+    csp=True
 )
 
 app.include_router(
@@ -242,7 +159,10 @@ async def add_process_time_header(request: Request, call_next):
     response = await call_next(request)
     process_time = time.time() - start_time
     process_time = '{:2f}'.format(process_time)
-    response.headers["X-Process-Time"] = str(process_time)
+    response.headers['X-Process-Time'] = str(process_time)
+    # response.headers['X-XSS-Protection'] = '1; mode=block'
+    # response.headers['X-Content-Type-Options'] = 'nosniff'
+    # response.headers['Content-Security-Policy'] = 'default-src "self"'
     pass_url = str(request.url)
     sentence = '../../' or '..%2F..%2F' or '/../../'
     if sentence in pass_url:
@@ -289,4 +209,12 @@ def csrf_protect_exception_handler(request: Request, exc: CsrfProtectError):
     return JSONResponse(
         status_code=exc.status_code,
         content={'detail': 'Missing Cookie csrf-token'}
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
     )
