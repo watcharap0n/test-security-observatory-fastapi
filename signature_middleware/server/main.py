@@ -162,7 +162,7 @@ async def add_process_time_header(request: Request, call_next):
     response.headers['X-Process-Time'] = str(process_time)
     # response.headers['X-XSS-Protection'] = '1; mode=block'
     # response.headers['X-Content-Type-Options'] = 'nosniff'
-    # response.headers['Content-Security-Policy'] = 'default-src "self"'
+    # response.headers["Content-Security-Policy"] = "default-src 'self'; img-src * data:; connect-src self; script-src self; style-src 'self' data: https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css; script-src-elem https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js 'sha256-1I8qOd6RIfaPInCv8Ivv4j+J0C6d7I8+th40S5U/TVc='"
     pass_url = str(request.url)
     sentence = '../../' or '..%2F..%2F' or '/../../'
     if sentence in pass_url:

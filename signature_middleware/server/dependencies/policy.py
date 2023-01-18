@@ -8,23 +8,19 @@ from starlette.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 CSP: dict[str, str | list[str]] = {
-    "default-src": "'self'",
+    "default-src": "self",
     "img-src": [
         "*",
         # For SWAGGER UI
         "data:",
     ],
-    "connect-src": "'self'",
-    "script-src": "'self'",
-    "style-src": ["'self'", "'unsafe-inline'"],
+    "connect-src": "self",
+    "script-src": ["self"],
+    "style-src": ["self", "data:", 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css', 'unsafe-inline'],
     "script-src-elem": [
         # For SWAGGER UI
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js",
         "'sha256-1I8qOd6RIfaPInCv8Ivv4j+J0C6d7I8+th40S5U/TVc='",
-    ],
-    "style-src-elem": [
-        # For SWAGGER UI
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css",
     ],
 }
 
