@@ -8,14 +8,14 @@ from starlette.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 CSP: dict[str, str | list[str]] = {
-    "default-src": "'self'",
+    "default-src": "'none'",
     "img-src": [
         "*",
         "data:",
     ],
     "connect-src": "'self'",
     "script-src": ["'self'"],
-    "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css",
+    "style-src": ["'self'", "https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css",
                   "https://*.googleapis.com"],
     "worker-src": ["'self'", "blob:"],
     "font-src": ["'self'", "https://*.gstatic.com"],
@@ -23,6 +23,9 @@ CSP: dict[str, str | list[str]] = {
         "'unsafe-inline'",
         "https://*.jsdelivr.net",
     ],
+    "frame-ancestors": "'self'",
+    "base-uri": ["'self'"],
+    "form-action": ["'none'"],
 }
 
 
