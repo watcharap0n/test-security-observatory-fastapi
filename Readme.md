@@ -26,6 +26,6 @@ Base Dependencies:
 - MongoDB
 - Redis
 
-![Alt text](https://github.com/watcharap0n/test-security-observatory-fastapi/blob/main/signature_middleware/server/static/vulner-test.png?raw=true "Title")
+![Alt text](https://github.com/watcharap0n/test-security-observatory-fastapi/blob/hub/signature_middleware/server/static/vulner-test.png?raw=true "Title")
 
 
