@@ -40,13 +40,6 @@ class Intermediate(BaseModel):
         dt = datetime.now(tz)
         return dt
 
-    @validator('expiration_date', pre=True, always=True)
-    def set_expire(cls, expiration_date):
-        tz = pytz.timezone('Asia/Bangkok')
-        dt = datetime.now(tz)
-        return dt + timedelta(days=365)
-
-
 
 class ChannelAccess(Intermediate):
     channel_access_token: Optional[str] = None

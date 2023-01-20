@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Union, Optional
 from fastapi import APIRouter, status, HTTPException, Path, Depends, Query
 from fastapi.encoders import jsonable_encoder
@@ -30,6 +31,9 @@ async def create_intermediate_level(
         return item_stored
     company_item = await db.find_one(collection='organizations',
                                      query={'channel_access_token': payload.channel_access_token})
+    to_date = datetime.strptime(company_item['expiration_date'], '%Y-%m-%d')
+    item_model['expiration_date'] = to_date
+    item_model['detail']['validityDays'] = company_item['detail']['validityDays']
     item_model['detail']['signerProfileName'] = company_item['detail']['profileName']
     item_model['detail']['signerPassword'] = company_item['detail']['password']
     await db.insert_one(collection=COLLECTION, data=item_model)

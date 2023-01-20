@@ -241,9 +241,6 @@ async def update_profile(
         'email': profile.email,
         'channel_access_token': profile.channel_access_token
     }
-    tz = pytz.timezone('Asia/Bangkok')
-    dt = datetime.now(tz)
-    profile.expiration_date = dt + timedelta(days=profile.cert.detail.validityDays)
     # change your under intermediate
     detail_profile = profile.cert.detail.dict()
     detail_profile['signerProfileName'] = individual['detail']['signerProfileName']

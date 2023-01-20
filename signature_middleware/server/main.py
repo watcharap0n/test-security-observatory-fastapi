@@ -45,8 +45,11 @@ RATE_PER_TIME = int(os.getenv('RATE_PER_TIME', 3))
 RATE_AWAIT = int(os.getenv('RATE_AWAIT', 5))
 
 app.add_middleware(
-    SecurityHeadersMiddleware,
-    csp=True
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(

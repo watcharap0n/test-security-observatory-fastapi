@@ -124,7 +124,7 @@ class Terminal(BaseModel):
     owner: Union[Profile, None] = None
     available_people: Union[List[AvailablePeople], None] = []
     detail: Union[CertificateJDS, None] = None
-    expiration_date: Optional[datetime] = None
+    expiration_date: Union[datetime, str] = None
     disabled: Union[bool, None] = False
     date: Optional[datetime] = None
 
@@ -139,12 +139,6 @@ class Terminal(BaseModel):
                 'detail': {}
             }
         }
-
-    @validator('expiration_date', pre=True, always=True)
-    def set_expire(cls, expiration_date):
-        tz = pytz.timezone('Asia/Bangkok')
-        dt = datetime.now(tz)
-        return dt + timedelta(days=365)
 
     @validator('date', pre=True, always=True)
     def set_date(cls, date):
