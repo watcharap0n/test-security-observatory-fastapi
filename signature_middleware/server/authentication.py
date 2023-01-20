@@ -14,8 +14,7 @@ from fastapi.security import (
 from passlib.context import CryptContext
 from .db import db
 from .models.authentication import User, UserInDB, Register, Token, TokenData, \
-    UpdateMember, CsrfProtect, UpdateCert, TableUser
-from .models.terminal import Terminal
+    UpdateMember, CsrfProtect, TableUser
 from .dependencies.authorize.header import signature_jwt_header
 
 SECOND = 60
@@ -190,18 +189,6 @@ async def permission_admin(
     return current_user
 
 
-@authenticate.post('/user/register/session', response_model=Register)
-async def register_user(
-        register: Register = Depends(evaluate_duplicate_account),
-        current_user: User = Depends(permission_admin)
-):
-    hashed = get_password_hash(register.hashed_password)
-    register.hashed_password = hashed
-    item_model = jsonable_encoder(register)
-    await db.insert_one(collection=COLLECTION, data=item_model)
-    return item_model
-
-
 @authenticate.get('/user/find/{token}', response_model=List[TableUser])
 async def get_user_organization(token: str = Depends(evaluate_access_token)):
     users = await db.find(collection=COLLECTION, query={'channel_access_token': token})
@@ -209,62 +196,6 @@ async def get_user_organization(token: str = Depends(evaluate_access_token)):
     if not users:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Not found user.')
     return users
-
-
-@authenticate.put('/user/edit/{id}/cert', response_model=Register)
-async def update_profile(
-        profile: UpdateCert,
-        id: str = Path(..., regex='^(?![a-z])[a-z0-9]+$'),
-        current_user: User = Depends(get_current_active_user)
-):
-    individual = await db.find_one(
-        collection='intermediates',
-        query={
-            '_id': id,
-            'channel_access_token': profile.channel_access_token,
-            'type': 'personal'
-        }
-    )
-    if not individual:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Your organization not create intermediate individual.'
-        )
-    if await db.find_one(collection='terminals', query={'token': individual['_id'],
-                                                        'owner.uid': profile.uid}):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail='Terminal cert is already exits.')
-    profile_user = {
-        'uid': profile.uid,
-        'username': profile.username,
-        'full_name': profile.full_name,
-        'email': profile.email,
-        'channel_access_token': profile.channel_access_token
-    }
-    # change your under intermediate
-    detail_profile = profile.cert.detail.dict()
-    detail_profile['signerProfileName'] = individual['detail']['signerProfileName']
-    detail_profile['signerPassword'] = individual['detail']['signerPassword']
-
-    # create your terminal
-    model_terminal = Terminal()
-    model_terminal.subject = profile.username
-    model_terminal.imd_detail = individual
-    model_terminal.owner = profile_user
-    model_terminal.available_people = [profile_user]
-    model_terminal.detail = detail_profile
-
-    item_model = jsonable_encoder(model_terminal)
-    await db.insert_one(collection='terminals', data=jsonable_encoder(item_model))
-
-    query = {'uid': profile.uid}
-    value = {'$set': jsonable_encoder(profile)}
-    if (await db.update_one(collection=COLLECTION,
-                            query=query,
-                            values=value)) == 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f'Not found {profile.uid} or update already exits.')
-    return await db.find_one(collection=COLLECTION, query=query)
 
 
 @authenticate.put('/user/edit/{uid}', response_model=Register)

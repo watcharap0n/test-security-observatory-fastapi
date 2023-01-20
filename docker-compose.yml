@@ -19,7 +19,7 @@ services:
       - default
 
   mongo:
-    container_name: mongo_signs
+    container_name: mongo
     image: mongo:5.0
     restart: always
     ports:
@@ -53,7 +53,7 @@ services:
 
   redis:
     image: "redis:alpine"
-    container_name: redis_signs
+    container_name: redis
     restart: always
     ports:
       - "6379:6379"

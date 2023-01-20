@@ -9,7 +9,6 @@ from fastapi import FastAPI, status, Request, Depends
 from fastapi_limiter import FastAPILimiter
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
@@ -17,7 +16,7 @@ from fastapi_csrf_protect.exceptions import CsrfProtectError
 from fastapi.responses import JSONResponse
 from fastapi_limiter.depends import RateLimiter
 from .authentication import authenticate
-from .routes import initialize, intermediate, terminal
+from .routes import initialize
 from .dependencies.policy import SecurityHeadersMiddleware
 from .dependencies.router import apply
 
@@ -34,22 +33,12 @@ st_abs_file_path = os.path.join(script_dir, 'static/')
 os.makedirs(st_abs_file_path, exist_ok=True)
 app.mount('/static', StaticFiles(directory=st_abs_file_path), name='static')
 
-origins = [
-    "http://localhost:80",
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://localhost:8080"
-]
-
 RATE_PER_TIME = int(os.getenv('RATE_PER_TIME', 3))
 RATE_AWAIT = int(os.getenv('RATE_AWAIT', 5))
 
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    SecurityHeadersMiddleware,
+    csp=True
 )
 
 app.include_router(
@@ -73,26 +62,6 @@ app.include_router(
 )
 
 app.include_router(
-    intermediate.router,
-    prefix='/intermediate',
-    tags=['Intermediate'],
-    dependencies=[Depends(RateLimiter(
-        times=RATE_PER_TIME,
-        seconds=RATE_AWAIT
-    ))]
-)
-
-app.include_router(
-    terminal.router,
-    prefix='/terminal',
-    tags=['Terminal'],
-    dependencies=[Depends(RateLimiter(
-        times=RATE_PER_TIME,
-        seconds=RATE_AWAIT
-    ))]
-)
-
-app.include_router(
     apply.router,
     prefix='/jwt/auth',
     tags=['CSRF'],
@@ -106,7 +75,7 @@ log = logging.getLogger("uvicorn")
 handler = Mangum(app)
 
 description = """
-SIGNATURE SERVICE. 👋🏻
+SERVICE SECURE SAMPLE. 👋🏻
 
 ## APIs
 
@@ -141,7 +110,7 @@ def customer_openapi_signature():
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
-        title="SIGNATURE SERVICE",
+        title="SERVICE SECURE SAMPLE.",
         version="1.0.9",
         description=description,
         routes=app.routes,
@@ -163,9 +132,6 @@ async def add_process_time_header(request: Request, call_next):
     process_time = time.time() - start_time
     process_time = '{:2f}'.format(process_time)
     response.headers['X-Process-Time'] = str(process_time)
-    # response.headers['X-XSS-Protection'] = '1; mode=block'
-    # response.headers['X-Content-Type-Options'] = 'nosniff'
-    # response.headers["Content-Security-Policy"] = "default-src 'self'; img-src * data:; connect-src self; script-src self; style-src 'self' data: https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css; script-src-elem https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js 'sha256-1I8qOd6RIfaPInCv8Ivv4j+J0C6d7I8+th40S5U/TVc='"
     pass_url = str(request.url)
     sentence = '../../' or '..%2F..%2F' or '/../../'
     if sentence in pass_url:
@@ -184,7 +150,7 @@ async def startup_event():
     log.info(r)
     await FastAPILimiter.init(r)
 
-    log.info("Starting up server signature")
+    log.info("Starting up service")
     root_dir = os.path.dirname(__file__)
     static_dir = os.path.join(root_dir, 'static')
     log_dir = os.path.join(static_dir, 'log')
@@ -201,7 +167,7 @@ async def shutdown_event():
         txt = f"""
         time: {dt} | timezone - asia/bangkok
         timestamp: {timestamp}
-        Application shutdown server signature
+        Application shutdown service
         """
         create_log.write(txt)
     log.info("Shutting down...")

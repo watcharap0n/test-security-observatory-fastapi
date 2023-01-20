@@ -1,4 +1,3 @@
-from datetime import datetime
 import json
 from typing import List, Union
 from fastapi import APIRouter, Query, Path, HTTPException, status, Depends, \
@@ -97,11 +96,7 @@ async def create_root(
         payload: Initialized = Depends(evaluate_duplication_organization),
         current_user: User = Depends(get_signs_active_user)
 ):
-    dt = datetime.now()
-    datetime_obj = datetime.strptime(payload.expiration_date, '%Y-%m-%d')
-    cal_days = datetime_obj - dt
     item_model = jsonable_encoder(payload)
-    item_model['detail']['validityDays'] = cal_days.days
     await db.insert_one(collection=COLLECTION, data=item_model)
     background_task.add_task(
         log_transaction,
@@ -139,35 +134,3 @@ async def update_root(
         info_user=current_user.dict()
     )
     return item_model
-
-
-@router.get('/find/organization/{id}/chart')
-async def organization_chart(
-        background_task: BackgroundTasks,
-        id: str = Path(title='Document ID in collection for get item.',
-                       regex='^(?![a-z])[a-z0-9]+$'),
-        current_user: User = Depends(permission_super_admin_via_find)
-):
-    org = await db.find_one(collection=COLLECTION, query={'_id': id})
-    channel_access_token = org['channel_access_token']
-    intermediates = await db.find(
-        collection='intermediates',
-        query={'channel_access_token': channel_access_token}
-    )
-    intermediates = list(intermediates)
-    new_intermediates = []
-    for imd in intermediates:
-        _id = imd['_id']
-        terminals = await db.find(collection='terminals', query={'token': _id})
-        result_terminal = [terminal for terminal in terminals]
-        imd['terminals'] = result_terminal
-        new_intermediates.append(imd)
-    org['intermediates'] = new_intermediates
-    background_task.add_task(
-        log_transaction,
-        method='/GET',
-        endpoint=f'/initial/find/organization/{id}/chart',
-        from_cache=False,
-        info_user=current_user.dict()
-    )
-    return org

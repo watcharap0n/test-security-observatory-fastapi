@@ -6,7 +6,6 @@ from typing import Union, List, Optional
 from pydantic import BaseModel, Field, validator, EmailStr, UUID4
 from fastapi_csrf_protect import CsrfProtect
 from ..db import PyObjectId
-from ..models.terminal import CertificateJDS
 
 
 class Token(BaseModel):
@@ -17,12 +16,6 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Union[str, None] = None
     scopes: List[str] = []
-
-
-class CertUser(BaseModel):
-    id: Union[str, None] = None
-    detail: Union[CertificateJDS, None] = {}
-    disabled: Optional[bool] = False
 
 
 class User(BaseModel):
@@ -40,7 +33,6 @@ class TableUser(BaseModel):
     uid: str
     username: str
     role: str
-    cert: CertUser
     channel_access_token: Union[str, None] = None
     email: Union[EmailStr, None] = None
     full_name: Union[str, None] = None
@@ -72,7 +64,6 @@ class Register(BaseModel):
     channel_access_token: Union[str, None] = None
     role: Optional[str] = 'Member'
     disabled: Optional[bool] = False
-    cert: CertUser
     date: Optional[datetime] = None
 
     class Config:
@@ -103,7 +94,6 @@ class UpdateMember(BaseModel):
         regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
         description='Allow only alphabetic eng character'
     )
-    cert: CertUser
     role: Optional[str] = 'Member'
     disabled: Optional[bool] = False
     channel_access_token: Union[str, None] = None
@@ -118,22 +108,6 @@ class UpdateMember(BaseModel):
                 'channel_access_token': ''
             }
         }
-
-
-class UpdateCert(BaseModel):
-    uid: str
-    username: str
-    email: Union[EmailStr, None] = None
-    full_name: Union[str, None] = Field(
-        None,
-        regex='^(?![0-9._])(?!.*[._]$)(?!.*\d_)(?!.*_\d)[a-zA-Z ]+$',
-        description='Allow only alphabetic eng character'
-    )
-    expiration_date: Optional[datetime] = None
-    cert: CertUser
-    role: Optional[str] = 'Member'
-    disabled: Optional[bool] = False
-    channel_access_token: Union[str, None] = None
 
 
 class CsrfSettings(BaseModel):

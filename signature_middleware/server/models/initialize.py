@@ -5,7 +5,6 @@ from bson import ObjectId
 from typing import Optional, Union
 from pydantic import BaseModel, Field, validator
 from ..db import PyObjectId
-from ..models.terminal import CertificateJDS
 
 
 class Initialized(BaseModel):
@@ -18,7 +17,6 @@ class Initialized(BaseModel):
     )
     signs_quota: Optional[int] = 100
     cert_quota: Optional[int] = 100
-    detail: CertificateJDS
     expiration_date: Union[datetime, str] = None
     date: Optional[datetime] = None
 
